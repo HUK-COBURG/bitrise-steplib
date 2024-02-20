@@ -32,3 +32,10 @@ deps:
 toolkit:
   bash:
     entry_file: step.sh
+
+inputs:
+  - github_token: null
+    opts:
+      is_sensitive: true
+      summary: LicensePlist uses GitHub API, so sometimes API limit errors occur. You can avoid those errors by specifying a GitHub token.
+      title: GitHub token
