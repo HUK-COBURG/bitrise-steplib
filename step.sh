@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex
 
+npm install -g @cyclonedx/cdxgen
+
 cmd="cdxgen"
 
 if [ -n "$type" ]; then

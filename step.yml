@@ -28,7 +28,9 @@ type_tags:
 
 deps:
   brew:
-    - name: cdxgen
+    - name: node
+  apt_get:
+    - name: nodejs
 
 toolkit:
   bash:
