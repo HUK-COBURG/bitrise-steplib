@@ -31,7 +31,6 @@ deps:
     - name: node
   apt_get:
     - name: nodejs
-    - name: maven
 
 toolkit:
   bash:
