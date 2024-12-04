@@ -49,6 +49,12 @@ inputs:
       is_required: false
       summary: CycloneDX Specification version to use.
       title: Spec-Version
+  - only: null
+    opts:
+      is_sensitive: false
+      is_required: false
+      summary: Include components only containing this word in purl.
+      title: Only
   - output: null
     opts:
       is_sensitive: false

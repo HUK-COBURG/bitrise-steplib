@@ -13,6 +13,10 @@ if [ -n "$specversion" ]; then
   cmd="$cmd --spec-version $specversion"
 fi
 
+if [ -n "$only" ]; then
+  cmd="$cmd --only $only"
+fi
+
 if [ -n "$output" ]; then
   cmd="$cmd -o $output"
 fi
