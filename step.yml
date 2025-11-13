@@ -8,14 +8,14 @@
 # - Bitrise CLI guides: http://devcenter.bitrise.io/bitrise-cli/
 
 title: |-
-  Run CycloneDX Generator
+  Set bundle version
 summary: |
-  Runs CycloneDX Generator to create SBOM (Software Bill Of Materials) file, in the CycloneDX format. This can be used by several other tools.
+  This step will use the GitLab API to get the number of commits and will set it as bundle version.
 description: |
-  This step will run CycloneDX Generator with a given configuration.
-  More information on how to configure CycloneDX Generator: https://github.com/CycloneDX/cdxgen
+  This step will use the GitLab API to get the number of commits and will set it as bundle version.
+  You have to hand over different values for it to work: commit hash, git url GitLab base url and token
 website: https://github.com/HUK-COBURG/bitrise-steplib
-source_code_url: https://github.com/HUK-COBURG/bitrise-steplib/tree/main/run-cdxgen
+source_code_url: https://github.com/HUK-COBURG/bitrise-steplib/tree/main/set-bundle-version
 support_url: https://github.com/HUK-COBURG/bitrise-steplib/issues
 
 project_type_tags:
@@ -26,38 +26,38 @@ project_type_tags:
 type_tags:
   - utility
 
-deps:
-  brew:
-    - name: node
-  apt_get:
-    - name: nodejs
-
 toolkit:
   bash:
     entry_file: step.sh
 
 inputs:
-  - type: null
+  - repository_url: $GIT_REPOSITORY_URL
     opts:
       is_sensitive: false
-      is_required: false
-      summary: Project type. Please refer to https://cyclonedx.github.io/cdxgen/#/PROJECT_TYPES for supported languages/platforms.
-      title: Type
-  - specversion: null
+      is_required: true
+      summary: The GIT repository url.
+      title: Repository url
+  - gitlab_base_url: null
     opts:
       is_sensitive: false
-      is_required: false
-      summary: CycloneDX Specification version to use.
+      is_required: true
+      summary: The base url of the GitLab instance.
       title: Spec-Version
-  - only: null
+  - gitlab_token: null
     opts:
       is_sensitive: false
-      is_required: false
-      summary: Include components only containing this word in purl.
-      title: Only
-  - output: null
+      is_required: true
+      summary: The token, used to communicate with GitLab.
+      title: GitLab token
+  - commit_hash: $GIT_CLONE_COMMIT_HASH
     opts:
       is_sensitive: false
-      is_required: false
-      summary: Output file. Default bom.json
-      title: Output file
+      is_required: true
+      summary: The SHA of the commit.
+      title: Commit hash
+
+outputs:
+- BUNDLE_VERSION:
+  opts:
+    title: Bundle version
+    description: The determined bundle version based.
