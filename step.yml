@@ -60,4 +60,4 @@ outputs:
 - BUNDLE_VERSION:
   opts:
     title: Bundle version
-    description: The determined bundle version based.
+    description: The determined bundle version based on the commit count.
