@@ -41,8 +41,8 @@ inputs:
     opts:
       is_sensitive: false
       is_required: true
-      summary: The base url of the GitLab instance.
-      title: GitLab base url
+      summary: The API base url of the GitLab instance.
+      title: GitLab API base url
   - gitlab_token: null
     opts:
       is_sensitive: true
