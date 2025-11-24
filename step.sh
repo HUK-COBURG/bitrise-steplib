@@ -103,7 +103,7 @@ AUTH_HEADER="PRIVATE-TOKEN: $gitlab_token"
 # According to GitLab API "Get commit sequence", the commit count (sequence number)
 # is available via the commit details endpoint.
 # Path: /api/v4/projects/:id/repository/commits/:sha/sequence
-commit_url="${gitlab_base_url}/api/v4/projects/${project_id_enc}/repository/commits/${commit_hash}/sequence"
+commit_url="${gitlab_base_url}/projects/${project_id_enc}/repository/commits/${commit_hash}/sequence"
 
 # Perform the request
 response="$(curl -k -sS -H "$AUTH_HEADER" "$commit_url")" || {
