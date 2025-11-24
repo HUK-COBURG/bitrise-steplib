@@ -114,7 +114,7 @@ AUTH_HEADER="PRIVATE-TOKEN: $gitlab_token"
 commit_url="${gitlab_base_url}/api/v4/projects/${project_id_enc}/repository/commits/${commit_hash}?stats=false"
 
 # Perform the request
-response="$(curl -sS -H "$AUTH_HEADER" "$commit_url")" || {
+response="$(curl -k -sS -H "$AUTH_HEADER" "$commit_url")" || {
   err "Failed to call GitLab API"
   exit 1
 }
