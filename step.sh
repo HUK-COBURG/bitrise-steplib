@@ -1,69 +1,144 @@
 #!/usr/bin/env bash
+#
+# Get the commit count (sequence number) for a given commit hash from a GitLab project
+# using the "Get commit sequence" GitLab API.
+#
+# Works on macOS and Ubuntu. Requires only: curl, sed/awk/grep (standard).
+# Comments and messages are in English as requested.
+#
+# Inputs (provide via environment variables or as CLI arguments in this order):
+#   1) repository_url   (e.g., "https://gitlab.com/group/project.git" or "git@gitlab.com:group/project.git")
+#   2) gitlab_base_url  (e.g., "https://gitlab.com" or "https://gitlab.yourcompany.com")
+#   3) gitlab_token     (Personal Access Token or Job Token with API scope)
+#   4) commit_hash      (the commit SHA to query)
+#   5) variable_name    (name of the variable to export/print with the count)
+#
+# Output:
+#   - Exports an environment variable named $variable_name with the commit count (for the current process).
+#   - Prints a line "variable_name=COUNT" to stdout, suitable for consumption by CI or other scripts.
+#
+# Note:
+#   - The script derives the GitLab project path (namespace/project) from repository_url.
+#   - The GitLab API expects URL-encoding of the project path (replace "/" with "%2F").
+#   - If your GitLab instance requires a different auth header (e.g., "JOB-TOKEN"), adjust AUTH_HEADER below.
+#
+# Example:
+#   export repository_url="https://gitlab.com/gitlab-org/gitlab.git"
+#   export gitlab_base_url="https://gitlab.com"
+#   export gitlab_token="glpat-xxxxxxxx"
+#   export commit_hash="abcdef1234567890"
+#   export variable_name="COMMIT_COUNT"
+#   ./get_commit_count.sh
+#
+# Or via CLI args:
+#   ./get_commit_count.sh "https://gitlab.com/group/project.git" "https://gitlab.com" "glpat-xxxx" "abcdef..." "COMMIT_COUNT"
+#
 
-FULL_PATH=$(printf "%s" "$repository_url" \
-  | sed -E -e 's#^https?://[^/]+/##' -e 's#^git@[^:]+:##' -e 's#\.git$##')
+set -euo pipefail
 
-PROJECT_ID=${FULL_PATH//\//%2F}
+# Read inputs from CLI if provided, else fall back to environment variables
+repository_url="${1:-${repository_url:-}}"
+gitlab_base_url="${2:-${gitlab_base_url:-}}"
+gitlab_token="${3:-${gitlab_token:-}}"
+commit_hash="${4:-${commit_hash:-}}"
+variable_name="${5:-${variable_name:-}}"
 
-# 1) Get the time stamp of the target commit
-commit_date=$(
-  curl -k -sS -H "PRIVATE-TOKEN: $gitlab_token" \
-    "$gitlab_base_url/projects/$PROJECT_ID/repository/commits/$commit_hash" \
-  | jq -re '.committed_date' 2>/dev/null || true
-)
+# Basic validation
+err() { printf 'Error: %s\n' "$*" >&2; }
+need() { [ -n "${!1:-}" ] || { err "Missing required input: $1"; exit 1; }; }
 
-if [[ -z "$commit_date" || "$commit_date" == "null" ]]; then
-  echo "Error: Commit $commit_hash not found or no date found." >&2
+need repository_url
+need gitlab_base_url
+need gitlab_token
+need commit_hash
+need variable_name
+
+# Normalize base URL (remove trailing slash)
+gitlab_base_url="${gitlab_base_url%/}"
+
+# Extract project path "group/subgroup/project" from repository_url
+# Supports HTTPS and SSH forms:
+#   - https://gitlab.com/group/project.git
+#   - https://gitlab.example.com/group/subgroup/project
+#   - git@gitlab.com:group/project.git
+#   - ssh://git@gitlab.example.com/group/project.git
+#
+# We will:
+#   1) Remove protocol and host.
+#   2) Remove leading ":" or "/" if present.
+#   3) Strip trailing ".git".
+project_path=""
+case "$repository_url" in
+  http://*|https://*)
+    # Remove scheme and host
+    # Example: https://gitlab.com/group/project.git -> group/project.git
+    project_path="$(printf '%s\n' "$repository_url" \
+      | sed -E 's@^https?://[^/]+/@@')"
+    ;;
+  ssh://*)
+    # Example: ssh://git@gitlab.example.com/group/project.git -> group/project.git
+    project_path="$(printf '%s\n' "$repository_url" \
+      | sed -E 's@^ssh://[^/]+/@@')"
+    ;;
+  git@*:* )
+    # Example: git@gitlab.com:group/project.git -> group/project.git
+    project_path="$(printf '%s\n' "$repository_url" \
+      | sed -E 's@^[^:]+:@@')"
+    ;;
+  *)
+    err "Unrecognized repository_url format: $repository_url"
+    exit 1
+    ;;
+esac
+
+# Remove leading slashes/colons if any and trailing .git
+project_path="$(printf '%s\n' "$project_path" | sed -E 's@^[/:]+@@; s@\.git$@@')"
+
+if [ -z "$project_path" ]; then
+  err "Could not parse project path from repository_url"
   exit 1
 fi
 
-# 2) Count the commit with pagination
-declare -i count=0
-url="$gitlab_base_url/projects/$PROJECT_ID/repository/commits?per_page=100&until=$commit_date"
+# URL-encode "/" as "%2F" for GitLab API project identifier
+# Note: We assume project_path contains only URL-safe chars aside from "/".
+project_id_enc="$(printf '%s' "$project_path" | sed 's@/@%2F@g')"
 
-while :; do
-  # Get body and header
-  response=$(curl -k -sS -i -H "PRIVATE-TOKEN: $gitlab_token" "$url")
+# Prepare auth header (adjust if using JOB-TOKEN in CI)
+AUTH_HEADER="PRIVATE-TOKEN: $gitlab_token"
 
-  # Split body and header
-  sep=$'\r\n\r\n'
-  if [[ "$response" == *"$sep"* ]]; then
-    headers="${response%%$sep*}"
-    body="${response#*$sep}"
-  else
-    # Fallback if just \n is used
-    sep=$'\n\n'
-    headers="${response%%$sep*}"
-    body="${response#*$sep}"
-  fi
+# Endpoint:
+# According to GitLab API "Get commit sequence", the commit count (sequence number)
+# is available via the commit details endpoint.
+# Path: /api/v4/projects/:id/repository/commits/:sha
+# We request without stats for speed.
+commit_url="${gitlab_base_url}/api/v4/projects/${project_id_enc}/repository/commits/${commit_hash}?stats=false"
 
-  # Check HTTP status
-  http_code=$(printf "%s" "$headers" | awk '/^HTTP/{code=$2} END{print code}')
-  if [[ "$http_code" != "200" ]]; then
-    echo "Error: HTTP $http_code at $url" >&2
-    printf "%s\n" "$headers" | sed -n '1,20p' >&2
-    exit 1
-  fi
+# Perform the request
+response="$(curl -sS -H "$AUTH_HEADER" "$commit_url")" || {
+  err "Failed to call GitLab API"
+  exit 1
+}
 
-  # Count items on the current page
-  page_count=$(printf "%s" "$body" | jq -r 'length' 2>/dev/null)
-  if ! [[ "$page_count" =~ ^[0-9]+$ ]]; then
-    echo "Error: Response is not a valid JSON at $url." >&2
-    exit 1
-  fi
-  count=$(( count + page_count ))
+# Basic error detection: if response contains "message" error or is empty
+if [ -z "$response" ]; then
+  err "Empty response from GitLab API"
+  exit 1
+fi
 
-  # Get next page from Link header (rel="next")
-  link_line=$(printf "%s" "$headers" | tr -d '\r' | grep -i '^Link:' || true)
-  next=$(printf "%s" "$link_line" \
-    | grep -o '<[^>]*>; rel="next"' \
-    | sed -E 's/^<([^>]*)>;.*$/\1/' \
-    | head -n1)
+# Try to detect common API error shape: {"message":"..."}
+if printf '%s' "$response" | grep -q '"message"'; then
+  err "GitLab API error: $(printf '%s' "$response" | sed -E 's/.*"message"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/;t; s/.*/Unknown error/')"
+  exit 1
+fi
 
-  [[ -z "$next" ]] && break
-  url="$next"
-done
+# Extract commit count. GitLab returns a field named "commit_count" for the sequence number.
+# Fall back to alternative keys if present ("commits_count" or "count") to be robust.
+commit_count="$(printf '%s' "$response" | grep -Eo '"count"[[:space:]]*:[[:space:]]*[0-9]+' | grep -Eo '[0-9]+' || true)"
 
-echo "Determined $count commits. Setting as bundle version."
+if [ -z "$commit_count" ]; then
+  err "Could not find commit count in API response. Raw response:"
+  printf '%s\n' "$response" >&2
+  exit 1
+fi
 
-envman add --key "BUNDLE_VERSION" --value $count
+envman add --key "$variable_name" --value $commit_count

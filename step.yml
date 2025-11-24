@@ -55,9 +55,15 @@ inputs:
       is_required: true
       summary: The SHA of the commit.
       title: Commit hash
+  - variable_name: BUNDLE_VERSION
+    opts:
+      is_sensitive: false
+      is_required: true
+      summary: The name of the variable for the bundle version.
+      title: Variable name
 
 outputs:
 - BUNDLE_VERSION:
   opts:
     title: Bundle version
-    description: The determined bundle version based on the commit count.
+    description: The determined bundle version based on the commit count. See inputs for the name of the variable.
