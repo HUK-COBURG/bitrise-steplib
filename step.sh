@@ -117,8 +117,7 @@ if printf '%s' "$response" | grep -q '"message"'; then
   exit 1
 fi
 
-# Extract commit count. GitLab returns a field named "commit_count" for the sequence number.
-# Fall back to alternative keys if present ("commits_count" or "count") to be robust.
+# Extract commit count. GitLab returns a field named "count" for the sequence number.
 commit_count="$(printf '%s' "$response" | grep -Eo '"count"[[:space:]]*:[[:space:]]*[0-9]+' | grep -Eo '[0-9]+' || true)"
 
 if [ -z "$commit_count" ]; then
