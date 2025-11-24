@@ -36,13 +36,6 @@
 
 set -euo pipefail
 
-# Read inputs from CLI if provided, else fall back to environment variables
-repository_url="${1:-${repository_url:-}}"
-gitlab_base_url="${2:-${gitlab_base_url:-}}"
-gitlab_token="${3:-${gitlab_token:-}}"
-commit_hash="${4:-${commit_hash:-}}"
-variable_name="${5:-${variable_name:-}}"
-
 # Basic validation
 err() { printf 'Error: %s\n' "$*" >&2; }
 need() { [ -n "${!1:-}" ] || { err "Missing required input: $1"; exit 1; }; }
@@ -109,9 +102,8 @@ AUTH_HEADER="PRIVATE-TOKEN: $gitlab_token"
 # Endpoint:
 # According to GitLab API "Get commit sequence", the commit count (sequence number)
 # is available via the commit details endpoint.
-# Path: /api/v4/projects/:id/repository/commits/:sha
-# We request without stats for speed.
-commit_url="${gitlab_base_url}/api/v4/projects/${project_id_enc}/repository/commits/${commit_hash}?stats=false"
+# Path: /api/v4/projects/:id/repository/commits/:sha/sequence
+commit_url="${gitlab_base_url}/api/v4/projects/${project_id_enc}/repository/commits/${commit_hash}/sequence"
 
 # Perform the request
 response="$(curl -k -sS -H "$AUTH_HEADER" "$commit_url")" || {
