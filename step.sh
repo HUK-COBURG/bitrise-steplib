@@ -4,7 +4,6 @@
 # using the "Get commit sequence" GitLab API.
 #
 # Works on macOS and Ubuntu. Requires only: curl, sed/awk/grep (standard).
-# Comments and messages are in English as requested.
 #
 # Inputs (provide via environment variables or as CLI arguments in this order):
 #   1) repository_url   (e.g., "https://gitlab.com/group/project.git" or "git@gitlab.com:group/project.git")
@@ -15,12 +14,10 @@
 #
 # Output:
 #   - Exports an environment variable named $variable_name with the commit count (for the current process).
-#   - Prints a line "variable_name=COUNT" to stdout, suitable for consumption by CI or other scripts.
 #
 # Note:
 #   - The script derives the GitLab project path (namespace/project) from repository_url.
 #   - The GitLab API expects URL-encoding of the project path (replace "/" with "%2F").
-#   - If your GitLab instance requires a different auth header (e.g., "JOB-TOKEN"), adjust AUTH_HEADER below.
 #
 # Example:
 #   export repository_url="https://gitlab.com/gitlab-org/gitlab.git"
@@ -29,9 +26,6 @@
 #   export commit_hash="abcdef1234567890"
 #   export variable_name="COMMIT_COUNT"
 #   ./get_commit_count.sh
-#
-# Or via CLI args:
-#   ./get_commit_count.sh "https://gitlab.com/group/project.git" "https://gitlab.com" "glpat-xxxx" "abcdef..." "COMMIT_COUNT"
 #
 
 set -euo pipefail
