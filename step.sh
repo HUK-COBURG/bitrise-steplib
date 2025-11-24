@@ -141,4 +141,6 @@ if [ -z "$commit_count" ]; then
   exit 1
 fi
 
+echo "Determined $commit_count commits. Setting as bundle version ($variable_name)."
+
 envman add --key "$variable_name" --value $commit_count
