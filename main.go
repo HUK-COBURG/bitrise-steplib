@@ -99,7 +99,7 @@ func fetchMergeRequestPipelineID(cfg config, repo string) (string, error) {
 
     for _, p := range pipelines {
         if p.Source == "merge_request_event" {
-            return strconv.Itoa(p.ID), nil
+            return strconv.Itoa(p.id), nil
         }
     }
 
