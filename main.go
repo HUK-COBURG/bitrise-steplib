@@ -125,7 +125,7 @@ func sendStatus(cfg config) error {
     // Optionally attach pipeline_id from MR pipelines
     if strings.TrimSpace(cfg.MergeRequestID) != "" {
         pipelineID, err := fetchMergeRequestPipelineID(cfg, repo)
-        if err == nil {
+        if err != nil {
             // Non-fatal: proceed without pipeline_id if fetching fails
             log.Warnf("Failed to fetch merge request pipelines: %s", err)
         } else if pipelineID != "" {
