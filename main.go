@@ -118,10 +118,6 @@ func sendStatus(cfg config) error {
         "coverage":    {fmt.Sprintf("%f", cfg.Coverage)},
     }
 
-    if strings.TrimSpace(cfg.GitRef) != "" {
-        form["ref"] = []string{strings.TrimSpace(cfg.GitRef)}
-    }
-
     // Optionally attach pipeline_id from MR pipelines
     if strings.TrimSpace(cfg.MergeRequestID) != "" {
         pipelineID, err := fetchMergeRequestPipelineID(cfg, repo)
@@ -131,6 +127,8 @@ func sendStatus(cfg config) error {
         } else if pipelineID != "" {
             form["pipeline_id"] = []string{pipelineID}
         }
+    } else if strings.TrimSpace(cfg.GitRef) != "" {
+        form["ref"] = []string{strings.TrimSpace(cfg.GitRef)}
     }
 
     url := fmt.Sprintf("%s/projects/%s/statuses/%s", cfg.APIURL, repo, cfg.CommitHash)
